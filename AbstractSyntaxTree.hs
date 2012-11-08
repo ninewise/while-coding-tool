@@ -8,6 +8,10 @@ type Program = Statement
 data Statement = Variable :=: Expression Int
                | While (Condition Int) Statement
                | Statement ::: Statement
+               deriving (Eq)
+infix 2 :=:
+infixr 1 :::
+infix 1 :>:
 
 instance Show Statement where
     show (n :=: e)      = n ++ " = " ++ (show e)
@@ -19,10 +23,11 @@ data Expression a = N a
                   | Expression a :+: Expression a
                   | Expression a :-: Expression a
                   | Expression a :*: Expression a
+                  deriving (Eq)
 
 instance Show a => Show (Expression a) where
     show (N c)          = show c
-    show (V n)          = show n
+    show (V n)          = n
     show (e1 :+: e2)    = "(" ++ (show e1) ++ " + " ++ (show e2) ++ ")"
     show (e1 :-: e2)    = "(" ++ (show e1) ++ " - " ++ (show e2) ++ ")"
     show (e1 :*: e2)    = "(" ++ (show e1) ++  "*"  ++ (show e2) ++ ")"
@@ -37,14 +42,10 @@ foldExpression con var add sub mul = go
         go (x :*: y)    = mul (go x) (go y)
 
 instance Functor Expression where
-    -- fmap f (N c)    = N $ f c
-    -- fmap f (V n as) = V n $ map f as
-    -- fmap f (e1 :+: e2)  = fmap f e1 :+: fmap f e2
-    -- fmap f (e1 :-: e2)  = fmap f e1 :-: fmap f e2
-    -- fmap f (e1 :*: e2)  = fmap f e1 :*: fmap f e2
     fmap f = foldExpression (N . f) (V) (:+:) (:-:) (:*:)
 
 data Condition a = Expression a :>: Expression a
+                 deriving (Eq)
 
 instance Show a => Show (Condition a) where
     show (e1 :>: e2) = (show e1) ++ " > " ++ (show e2)

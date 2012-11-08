@@ -5,6 +5,11 @@ import Prelude hiding (sequence)
 import AbstractSyntaxTree
 import ParserM
 
+parseProgram :: String -> Program
+parseProgram s = case runP program s of
+    Just x  -> x
+    Nothing -> error "Failed to parse program."
+
 -- . Additional functions.
 -- `---------------------------------------------------------------------------
 

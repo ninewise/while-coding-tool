@@ -16,5 +16,3 @@ lookup m k = Data.Map.lookup k m
 update :: VariableMap a -> Variable -> a -> VariableMap a
 update m k v = Data.Map.insert k v m
 
-printVars :: Show a => VariableMap a -> IO ()
-printVars m = putStrLn $ show $ toList m
