@@ -13,12 +13,14 @@ parseProgram s = case runP program s of
 -- . Additional functions.
 -- `---------------------------------------------------------------------------
 
+-- parses a random amount of spaces, newlines and tabs.
 whitespace :: ParserM p => p ()
 whitespace = return ()
           \/ do (char ' ' \/ char '\n' \/ char '\t')
                 whitespace
                 return ()
 
+-- parses the given string, surrounded by optional whitespace.
 token :: ParserM p => String -> p String
 token s = do whitespace
              x <- token' s
@@ -31,6 +33,8 @@ token s = do whitespace
                              xs <- token' cs
                              return (x:xs)
 
+-- parses several instances of the given parser, seperated by a komma,
+-- surrounded by optional whitepsace.
 list :: ParserM p => p a -> p [a]
 list m = do x <- m
             return [x]
@@ -55,6 +59,8 @@ program = do whitespace
 -- . Parse the statement.
 -- `---------------------------------------------------------------------------
 
+-- A statement consists of two statements seprated by a semicolon, an
+-- assignment, a while loop, a function or a comment followed by a statement.
 statement :: ParserM p => p Statement
 statement = sequence \/ assignment \/ loop \/ function \/ (comment >>= \_ -> statement)
 
@@ -93,6 +99,9 @@ sequence = do x <- (assignment \/ loop \/ function)
               y <- statement
               return $ x ::: y
 
+-- comments of the form /*   */ can be placed in front of each
+-- statement, possibly on a seperate line. They cannot be placed in the
+-- middle of a statement.
 comment :: ParserM p => p ()
 comment = do token "/*"
              text
@@ -129,7 +138,6 @@ expr :: ParserM p => [p (Expression Int)] -> p (Expression Int)
 expr [p]    = p
 expr (p:ps) = p \/ expr ps
 
--- TODO: negatieve getallen.
 con :: ParserM p => p (Expression Int)
 con = do x <- number
          return $ N x
