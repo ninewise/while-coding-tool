@@ -31,6 +31,14 @@ token s = do whitespace
                              xs <- token' cs
                              return (x:xs)
 
+list :: ParserM p => p a -> p [a]
+list m = do x <- m
+            return [x]
+      \/ do x <- m
+            token ","
+            xs <- list m
+            return (x:xs)
+
 -- . Parse the program.
 -- |
 -- | This is just a wrapper, as a program is a statement in the abstract syntax
@@ -48,7 +56,7 @@ program = do whitespace
 -- `---------------------------------------------------------------------------
 
 statement :: ParserM p => p Statement
-statement = sequence \/ assignment \/ loop \/ (comment >>= \_ -> statement)
+statement = sequence \/ assignment \/ loop \/ function \/ (comment >>= \_ -> statement)
 
 assignment :: ParserM p => p Statement
 assignment = do v <- variable
@@ -57,7 +65,8 @@ assignment = do v <- variable
                 return $ v :=: e
 
 loop :: ParserM p => p Statement
-loop = do token "while("
+loop = do token "while"
+          token "("
           c <- condition
           token ")"
           token "{"
@@ -65,8 +74,21 @@ loop = do token "while("
           token "}"
           return $ While c s
 
+function :: ParserM p => p Statement
+function = do token "function"
+              n <- variable
+              token "("
+              ps <- list variable
+              token ")"
+              token "->"
+              r <- variable
+              token "{"
+              s <- statement
+              token "}"
+              return $ Funct n r ps s
+
 sequence :: ParserM p => p Statement
-sequence = do x <- (assignment \/ loop)
+sequence = do x <- (assignment \/ loop \/ function)
               token ";"
               y <- statement
               return $ x ::: y
@@ -89,16 +111,16 @@ comment = do token "/*"
 -- expression and expression' are a left-associative addition and substraction
 -- parser.
 expression :: ParserM p => p (Expression Int)
-expression = do e <- expr [mul, par, var, con]
+expression = do e <- expr [mul, par, fun, var, con]
                 expression' e
 
 expression' :: ParserM p => (Expression Int) -> p (Expression Int)
 expression' e = return e
              \/ do token "+"
-                   e' <- expr [mul, par, var, con]
+                   e' <- expr [mul, par, fun, var, con]
                    expression' $ e :+: e'
              \/ do token "-"
-                   e' <- expr [mul, par, var, con]
+                   e' <- expr [mul, par, fun, var, con]
                    expression' $ e :-: e'
 
 -- expr is a right-associative parser, of the expression types given by the
@@ -116,16 +138,23 @@ var :: ParserM p => p (Expression Int)
 var = do x <- variable
          return $ V x
 
+fun :: ParserM p => p (Expression Int)
+fun = do x <- variable
+         token "("
+         as <- list expression
+         token ")"
+         return $ C x as
+
 par :: ParserM p => p (Expression Int)
 par = do token "("
-         x <- expr [mul, par, var, con]
+         x <- expression
          token ")"
          return x
 
 mul :: ParserM p => p (Expression Int)
-mul = do x <- expr [par, var, con]
+mul = do x <- expr [par, fun, var, con]
          token "*"
-         y <- expr [mul, par, var, con]
+         y <- expr [mul, par, fun, var, con]
          return $ x :*: y
 
 -- . Parse a condition.

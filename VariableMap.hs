@@ -1,7 +1,8 @@
 
 module VariableMap where
 
-import Data.Map
+import Prelude  hiding (filter)
+import Data.Map hiding (filter)
 
 import AbstractSyntaxTree
 
@@ -15,4 +16,8 @@ lookup m k = Data.Map.lookup k m
 
 update :: VariableMap a -> Variable -> a -> VariableMap a
 update m k v = Data.Map.insert k v m
+
+filter :: VariableMap a -> [Variable] -> VariableMap a
+filter m []     = m
+filter m (v:vs) = filter (delete v m) vs
 

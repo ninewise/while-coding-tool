@@ -1,10 +1,11 @@
 
 module PrettyPrinter where
 
+import Prelude       hiding (filter)
 import AbstractSyntaxTree
 import AnnotatedSyntaxTree
-import VariableMap
-import Data.Map             (toList, (!))
+import VariableMap   hiding (filter)
+import Data.Map             (toList, (!), filter)
 import Data.List            (intersperse)
 
 printProgram :: AnnotatedStatement -> String
@@ -23,9 +24,15 @@ printProgram' i m (AnnotatedWhile c s asm) =
     let str1 = indent i ++ "while (" ++ show c ++ ") {"
         (str2, m1) = printProgram' (i + 1) m s
         str3 = indent i ++ "}"
-    in (str1 ++ padding m (length str1) ++ printVars m asm ++ str2 ++ str3
+    in (str1 ++ padding m (length str1) ++ printVars m asm ++ "\n" ++ str2 ++ str3
        , max (length str1) m1
        )
+printProgram' i m (AnnotatedFunction v r ps s) =
+    let str1 = indent i ++ "function " ++ v ++ "(" ++
+               (concat $ intersperse ", " ps) ++ ") -> " ++ r ++ " {"
+        (str2, m1) = printProgram' (i + 1) m s
+        str3 = indent i ++ "}"
+    in (str1 ++ "\n" ++ str2 ++ "\n" ++ str3, max (length str1) m1)
 
 indent :: Int -> String
 indent i | i < 1        = ""
@@ -40,12 +47,16 @@ printVar v []       = ""
 printVar v [i]      = " :   " ++ v ++ " = " ++ show i
 printVar v (i:is)   = printVar v is ++ " | " ++ show i
 
-printVars :: Int -> [VariableMap Int] -> String
+printVars :: Indent -> [VariableMap Value] -> String
 printVars i []      = ""
 printVars i (m:ms)  = concat
                       $ intersperse
                         (replicate i ' ') 
                         (map (\(x, y) -> printVar x y ++ "\n")
-                         $ foldl merge (map (\(x, y) -> (x, [y])) $ toList m) ms)
-  where merge :: [(Variable, [Int])] -> VariableMap Int -> [(Variable, [Int])]
-        merge ps m = map (\(v, is) -> (v, is ++ [m ! v])) ps
+                         $ foldl merge (map (\(x, y) -> (x, [y])) $ toList $ filterInt m) ms)
+  where filterInt :: VariableMap Value -> VariableMap Int
+        filterInt m = fmap (\(Const c) -> c) $ filter (isInt) m
+          where isInt x = case x of Const c -> True
+                                    _       -> False
+        merge :: [(Variable, [Int])] -> VariableMap Value -> [(Variable, [Int])]
+        merge ps m = map (\(v, is) -> (v, is ++ [filterInt m ! v])) ps
