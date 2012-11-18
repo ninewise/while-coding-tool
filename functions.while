@@ -1,0 +1,21 @@
+/* returns quadrat  */
+function sq(x) -> x {
+    x = x * x
+};
+/* returns faculty */
+function fac(n) -> r {
+    r = 1;
+    while(n > 1) {
+        r = r * n;
+        n = n - 1
+    }
+};
+function max(x, y) -> r {
+    r = y;
+    while(x > y) {
+        r = x;
+        x = 0;
+        y = 1
+    }
+};
+result = max(3, 2 * fac(sq(3)) + 1)

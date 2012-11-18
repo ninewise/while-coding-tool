@@ -1,0 +1,8 @@
+function fibo(n) -> r {
+    r = 1;
+    while(n > 1) {
+        r = fibo(n - 1) + fibo(n - 2);
+        n = 1
+    }
+};
+result = fibo(10)
